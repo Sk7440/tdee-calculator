@@ -1,0 +1,195 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Math Calculators - Free Online Tools"
+  description="Free online math calculators for fractions, percentages, statistics, geometry, and more. Quick and easy to use."
+  canonical="https://tdee.lab/math-calculator/"
+>
+  <h1>Math Calculators</h1>
+  <p class="page-description">Use the basic math calculator below or browse our collection of specialized math tools.</p>
+
+  <!-- Basic Calculator -->
+  <div class="basic-calc-container">
+    <div class="calc-screen">
+      <div id="calc-display" class="calc-display">0</div>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-btn" onclick="calcInput('C')" style="background: #ef4444; color: white;">C</button>
+      <button class="calc-btn" onclick="calcInput('±')" style="background: #6b7280; color: white;">±</button>
+      <button class="calc-btn" onclick="calcInput('%')" style="background: #6b7280; color: white;">%</button>
+      <button class="calc-btn" onclick="calcInput('÷')" style="background: #4F46E5; color: white;">÷</button>
+      <button class="calc-btn" onclick="calcInput('7')">7</button>
+      <button class="calc-btn" onclick="calcInput('8')">8</button>
+      <button class="calc-btn" onclick="calcInput('9')">9</button>
+      <button class="calc-btn" onclick="calcInput('×')" style="background: #4F46E5; color: white;">×</button>
+      <button class="calc-btn" onclick="calcInput('4')">4</button>
+      <button class="calc-btn" onclick="calcInput('5')">5</button>
+      <button class="calc-btn" onclick="calcInput('6')">6</button>
+      <button class="calc-btn" onclick="calcInput('-')" style="background: #4F46E5; color: white;">−</button>
+      <button class="calc-btn" onclick="calcInput('1')">1</button>
+      <button class="calc-btn" onclick="calcInput('2')">2</button>
+      <button class="calc-btn" onclick="calcInput('3')">3</button>
+      <button class="calc-btn" onclick="calcInput('+')" style="background: #4F46E5; color: white;">+</button>
+      <button class="calc-btn" onclick="calcInput('0')" style="grid-column: span 2;">0</button>
+      <button class="calc-btn" onclick="calcInput('.')">.</button>
+      <button class="calc-btn" onclick="calcInput('=')" style="background: #059669; color: white;">=</button>
+    </div>
+  </div>
+
+  <style>
+    .basic-calc-container { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .calc-screen { background: #222; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .calc-display { font-family: monospace; font-size: 32px; color: #fff; text-align: right; min-height: 40px; overflow: hidden; }
+    .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+    .calc-btn {
+      padding: 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #e5e7eb;
+      color: #333;
+      transition: all 0.15s;
+    }
+    .calc-btn:hover {
+      background: #d1d5db;
+      transform: scale(1.02);
+    }
+    .calc-btn:active {
+      transform: scale(0.98);
+    }
+    html.dark .calc-btn {
+      background: #333;
+      color: #e5e5e5;
+    }
+    html.dark .calc-btn:hover {
+      background: #444;
+    }
+    html.dark .basic-calc-container { background: #111122; border-color: #2d2d4a; }
+  </style>
+
+  <script is:inline>
+    let calcExpression = '';
+    let calcDisplay = '0';
+    let calcJustEvaluated = false;
+
+    function calcInput(val) {
+      const display = document.getElementById('calc-display');
+      if (!display) return;
+
+      if (val === 'C') {
+        calcExpression = '';
+        calcDisplay = '0';
+      } else if (val === '±') {
+        if (calcDisplay !== '0') {
+          calcDisplay = calcDisplay.startsWith('-') ? calcDisplay.slice(1) : '-' + calcDisplay;
+        }
+      } else if (val === '%') {
+        calcDisplay = String(parseFloat(calcDisplay) / 100);
+      } else if (val === '=') {
+        try {
+          const expr = calcExpression + calcDisplay;
+          const result = Function('"use strict"; return (' + expr.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-') + ')')();
+          calcDisplay = String(Math.round(result * 100000000) / 100000000);
+          calcExpression = '';
+          calcJustEvaluated = true;
+        } catch {
+          calcDisplay = 'Error';
+          calcExpression = '';
+        }
+      } else if (['+', '-', '×', '÷', '−'].includes(val)) {
+        calcExpression += calcDisplay + val;
+        calcDisplay = '';
+        calcJustEvaluated = false;
+      } else {
+        if (calcJustEvaluated) {
+          calcExpression = '';
+          calcJustEvaluated = false;
+        }
+        calcDisplay = calcDisplay === '0' ? val : calcDisplay + val;
+      }
+
+      display.textContent = calcDisplay || '0';
+    }
+  </script>
+
+  <h2 class="section-title" id="scientific">Scientific Calculators</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Scientific Calculator</h3>
+      <p>Advanced math functions including sin, cos, tan, log, and more.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Fraction Calculator</h3>
+      <p>Add, subtract, multiply, and divide fractions step by step.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Percentage Calculator</h3>
+      <p>Calculate percentages, increases, decreases, and differences.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Exponent Calculator</h3>
+      <p>Calculate powers and roots of any number.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Log Calculator</h3>
+      <p>Calculate logarithms with any base.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Square Root Calculator</h3>
+      <p>Find square roots and cube roots quickly.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="statistics">Statistics</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Mean, Median, Mode</h3>
+      <p>Calculate average, middle value, and most frequent number.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Standard Deviation</h3>
+      <p>Measure how spread out numbers are from the average.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Probability Calculator</h3>
+      <p>Calculate chance and likelihood of events.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Sample Size Calculator</h3>
+      <p>Determine how many data points you need.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="geometry">Geometry</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Triangle Calculator</h3>
+      <p>Find sides, angles, and area of any triangle.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Circle Calculator</h3>
+      <p>Calculate circumference, area, and diameter.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Volume Calculator</h3>
+      <p>Find volume of spheres, cylinders, cones, and more.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Area Calculator</h3>
+      <p>Calculate area of any shape instantly.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Slope Calculator</h3>
+      <p>Find the slope of a line between two points.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Pythagorean Theorem</h3>
+      <p>Find missing sides of right triangles.</p>
+    </a>
+  </div>
+</Layout>

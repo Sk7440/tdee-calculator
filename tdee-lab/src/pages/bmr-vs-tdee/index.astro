@@ -1,0 +1,86 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="BMR vs TDEE — What's the Difference?"
+  description="Understand the key differences between Basal Metabolic Rate (BMR) and Total Daily Energy Expenditure (TDEE). Which one matters for your goals?"
+  canonical="https://tdee.lab/bmr-vs-tdee/"
+>
+  <h1>BMR vs TDEE</h1>
+  <p class="page-description">Two numbers every person interested in nutrition should understand: <strong>BMR</strong> (Basal Metabolic Rate) and <strong>TDEE</strong> (Total Daily Energy Expenditure). They're related but serve very different purposes.</p>
+
+  <!-- Side-by-side comparison -->
+  <div class="comparison-grid">
+    <div class="card-blue">
+      <h3 style="font-size: 14px; font-weight: 600; color: #4F46E5; margin-bottom: 4px;">BMR</h3>
+      <p style="font-size: 12px; color: #666; margin-bottom: 12px;">Basal Metabolic Rate</p>
+      <p class="card-body">The calories your body burns at complete rest to keep you alive — breathing, circulation, cell repair. Think of it as your body's "minimum operating cost."</p>
+      <div class="card-value-box">≈ 1,500 – 2,200 kcal/day</div>
+    </div>
+    <div class="card-green">
+      <h3 style="font-size: 14px; font-weight: 600; color: #059669; margin-bottom: 4px;">TDEE</h3>
+      <p style="font-size: 12px; color: #666; margin-bottom: 12px;">Total Daily Energy Expenditure</p>
+      <p class="card-body">The total calories your body burns in a full day — including BMR, exercise, walking, digesting food, and all non-exercise activity.</p>
+      <div class="card-value-box">≈ 1,800 – 3,500 kcal/day</div>
+    </div>
+  </div>
+
+  <article style="margin-top: 24px;">
+    <section style="margin-bottom: 24px;">
+      <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">The Relationship</h2>
+      <div class="info-box">
+        TDEE = BMR × Activity Multiplier
+      </div>
+      <p>Your TDEE is always higher than your BMR (unless you're completely sedentary and even then, TEF adds to it). The activity multiplier bridges the gap.</p>
+    </section>
+
+    <section style="margin-bottom: 24px;">
+      <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">Which One Should You Use?</h2>
+      <ul style="list-style: disc; padding-left: 24px; margin-top: 8px;">
+        <li style="margin-bottom: 8px;"><strong>Use BMR</strong> to understand your baseline metabolic health and compare against clinical standards.</li>
+        <li style="margin-bottom: 8px;"><strong>Use TDEE</strong> to set your actual calorie targets for weight loss, maintenance, or gain. This is the number that matters for nutrition planning.</li>
+      </ul>
+    </section>
+
+    <section style="margin-bottom: 24px;">
+      <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">How Activity Affects the Gap</h2>
+      <p style="margin-bottom: 12px;">The difference between BMR and TDEE can be dramatic. A sedentary office worker might have a TDEE only 20% above their BMR, while a competitive athlete could have a TDEE 90% above their BMR.</p>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #eee;">
+            <th style="text-align: left; padding: 10px 12px; color: #555;">Activity</th>
+            <th style="text-align: left; padding: 10px 12px; color: #555;">Multiplier</th>
+            <th style="text-align: left; padding: 10px 12px; color: #555;">TDEE (BMR=1,700)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 12px;">Sedentary</td><td style="padding: 10px 12px; font-weight: 500;">1.2×</td><td style="padding: 10px 12px; font-weight: 500;">2,040 kcal</td></tr>
+          <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 12px;">Light</td><td style="padding: 10px 12px; font-weight: 500;">1.375×</td><td style="padding: 10px 12px; font-weight: 500;">2,338 kcal</td></tr>
+          <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 12px;">Moderate</td><td style="padding: 10px 12px; font-weight: 500;">1.55×</td><td style="padding: 10px 12px; font-weight: 500;">2,635 kcal</td></tr>
+          <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 12px;">Active</td><td style="padding: 10px 12px; font-weight: 500;">1.725×</td><td style="padding: 10px 12px; font-weight: 500;">2,933 kcal</td></tr>
+          <tr><td style="padding: 10px 12px;">Very Active</td><td style="padding: 10px 12px; font-weight: 500;">1.9×</td><td style="padding: 10px 12px; font-weight: 500;">3,230 kcal</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section style="margin-bottom: 24px;">
+      <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">Key Takeaway</h2>
+      <p>BMR tells you what your body needs to survive. TDEE tells you what your body needs to function at your actual activity level. For any practical nutrition goal — whether losing fat, building muscle, or maintaining weight — <strong>TDEE is the number that matters</strong>.</p>
+    </section>
+  </article>
+
+  <style>
+    .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+    .card-body { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 12px; }
+    .card-value-box { background: white; padding: 10px 12px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #333; }
+
+    :global(html.dark) .card-body { color: #aaa; }
+    :global(html.dark) .card-value-box { background: #1a1a2e; color: #e5e5e5; }
+    :global(html.dark) article p { color: #ccc; }
+    :global(html.dark) article th { color: #aaa; }
+    :global(html.dark) article tr { border-bottom-color: #333; }
+    :global(html.dark) article td { color: #ccc; }
+    :global(html.dark) article li { color: #ccc; }
+  </style>
+</Layout>

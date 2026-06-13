@@ -1,0 +1,17 @@
+{
+  "name": "tdee-lab-chat-server",
+  "version": "1.0.0",
+  "description": "Backend proxy for TDEE Lab AI Chat Widget (Gemini 3.5 Flash)",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^7.4.0",
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.4.5"
+  }
+}

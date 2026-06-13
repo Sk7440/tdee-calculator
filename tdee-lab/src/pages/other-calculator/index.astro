@@ -1,0 +1,200 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Other Calculators - Free Online Tools"
+  description="Free online calculators for date & time, conversions, passwords, and more. Quick and easy to use."
+  canonical="https://tdee.lab/other-calculator/"
+>
+  <h1>Other Calculators</h1>
+  <p class="page-description">Useful calculators for everyday tasks. From age to passwords, we've got you covered.</p>
+
+  <!-- Quick Age Calculator -->
+  <div class="calc-card-green">
+    <h3 class="age-card-title">Quick Age Calculator</h3>
+    <div class="age-flex">
+      <div style="flex: 1;">
+        <label class="age-label">Your Birthday</label>
+        <input type="date" id="birthday-input" class="input-field" />
+      </div>
+      <button onclick="calculateAge()" class="age-btn">Calculate</button>
+    </div>
+    <div id="age-result" style="margin-top: 16px; display: none;">
+      <div class="age-result-grid">
+        <div class="result-card-sm">
+          <div class="age-result-label">Years</div>
+          <div id="age-years" class="age-value">0</div>
+        </div>
+        <div class="result-card-sm">
+          <div class="age-result-label">Months</div>
+          <div id="age-months" class="age-value">0</div>
+        </div>
+        <div class="result-card-sm">
+          <div class="age-result-label">Days</div>
+          <div id="age-days" class="age-value">0</div>
+        </div>
+        <div class="result-card-sm">
+          <div class="age-result-label">Total Days</div>
+          <div id="age-total" class="age-value">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    function calculateAge() {
+      const birthday = new Date(document.getElementById('birthday-input').value);
+      if (isNaN(birthday.getTime())) {
+        alert('Please enter a valid date');
+        return;
+      }
+
+      const today = new Date();
+      let years = today.getFullYear() - birthday.getFullYear();
+      let months = today.getMonth() - birthday.getMonth();
+      let days = today.getDate() - birthday.getDate();
+
+      if (days < 0) {
+        months--;
+        days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+      }
+      if (months < 0) {
+        years--;
+        months += 12;
+      }
+
+      const totalDays = Math.floor((today - birthday) / (1000 * 60 * 60 * 24));
+
+      document.getElementById('age-years').textContent = years;
+      document.getElementById('age-months').textContent = months;
+      document.getElementById('age-days').textContent = days;
+      document.getElementById('age-total').textContent = totalDays.toLocaleString();
+      document.getElementById('age-result').style.display = 'block';
+    }
+  </script>
+
+  <h2 class="section-title" id="date-time">Date & Time</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Age Calculator</h3>
+      <p>Find your exact age in years, months, and days.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Date Calculator</h3>
+      <p>Add or subtract days from any date.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Time Calculator</h3>
+      <p>Add, subtract, and convert time units.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Hours Calculator</h3>
+      <p>Calculate hours between two times.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Day Counter</h3>
+      <p>Count days between two dates.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Time Zone Converter</h3>
+      <p>Convert time between different time zones.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="conversion">Unit Conversion</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Length Converter</h3>
+      <p>Convert between meters, feet, inches, and more.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Weight Converter</h3>
+      <p>Convert between kg, lbs, ounces, and more.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Temperature Converter</h3>
+      <p>Convert between Celsius, Fahrenheit, and Kelvin.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Volume Converter</h3>
+      <p>Convert between liters, gallons, cups, and more.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Speed Converter</h3>
+      <p>Convert between mph, km/h, and m/s.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Data Storage Converter</h3>
+      <p>Convert between bytes, KB, MB, GB, and TB.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="utility">Everyday Utilities</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Password Generator</h3>
+      <p>Create strong, secure passwords instantly.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Tip Calculator</h3>
+      <p>Split the bill and calculate tips easily.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>GPA Calculator</h3>
+      <p>Calculate your grade point average.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Random Number Generator</h3>
+      <p>Generate random numbers within any range.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Dice Roller</h3>
+      <p>Roll virtual dice for games and decisions.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Fuel Cost Calculator</h3>
+      <p>Estimate fuel costs for your trip.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="health-tools">Health Tools</h2>
+  <div class="category-grid">
+    <a href="/tdee-calculator/" class="category-card">
+      <h3>TDEE Calculator</h3>
+      <p>Calculate your Total Daily Energy Expenditure.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>BMI Calculator</h3>
+      <p>Check your Body Mass Index.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Calorie Calculator</h3>
+      <p>Find out how many calories you need.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Macro Calculator</h3>
+      <p>Calculate your ideal protein, fat, and carbs.</p>
+    </a>
+  </div>
+
+  <style>
+    .calc-card-green { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .age-card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #059669; }
+    .age-flex { display: flex; gap: 12px; align-items: end; }
+    .age-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: #333; }
+    .age-btn { padding: 10px 20px; background: #059669; color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .age-btn:hover { background: #047857; }
+    .age-result-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .age-result-label { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+    .age-value { font-size: 24px; font-weight: 700; color: #059669; }
+
+    :global(html.dark) .calc-card-green { background: #0f1f14; border-color: #1a3a22; }
+    :global(html.dark) .age-card-title { color: #6ee7b7; }
+    :global(html.dark) .age-label { color: #ccc; }
+    :global(html.dark) .age-btn { background: #059669; }
+    :global(html.dark) .age-result-label { color: #666; }
+    :global(html.dark) .age-value { color: #6ee7b7; }
+    :global(html.dark) .result-card-sm { background: #1a1a2e; }
+  </style>
+</Layout>

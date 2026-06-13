@@ -1,0 +1,212 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  title="Financial Calculators - Free Online Tools"
+  description="Free online financial calculators for mortgage, loan, investment, retirement, and more. Plan your finances with ease."
+  canonical="https://tdee.lab/financial-calculator/"
+>
+  <h1>Financial Calculators</h1>
+  <p class="page-description">Plan your finances with our free calculators. From mortgages to investments, we've got you covered.</p>
+
+  <!-- Quick Loan Calculator -->
+  <div class="calc-card-blue">
+    <h3 class="calc-card-title">Quick Loan Calculator</h3>
+    <div class="loan-grid">
+      <div>
+        <label class="loan-label">Loan Amount ($)</label>
+        <input type="number" id="loan-amount" value="250000" class="input-field" />
+      </div>
+      <div>
+        <label class="loan-label">Interest Rate (%)</label>
+        <input type="number" id="loan-rate" value="6.5" step="0.1" class="input-field" />
+      </div>
+      <div>
+        <label class="loan-label">Loan Term (years)</label>
+        <input type="number" id="loan-term" value="30" class="input-field" />
+      </div>
+      <div>
+        <button onclick="calculateLoan()" class="loan-btn">Calculate</button>
+      </div>
+    </div>
+    <div id="loan-result" style="margin-top: 16px; display: none;">
+      <div class="loan-result-grid">
+        <div class="result-card-sm">
+          <div class="loan-result-label">Monthly Payment</div>
+          <div id="loan-monthly" class="loan-value-primary">$0</div>
+        </div>
+        <div class="result-card-sm">
+          <div class="loan-result-label">Total Interest</div>
+          <div id="loan-interest" class="loan-value-danger">$0</div>
+        </div>
+        <div class="result-card-sm">
+          <div class="loan-result-label">Total Paid</div>
+          <div id="loan-total" class="loan-value-success">$0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    function calculateLoan() {
+      const amount = parseFloat(document.getElementById('loan-amount').value);
+      const rate = parseFloat(document.getElementById('loan-rate').value) / 100 / 12;
+      const term = parseInt(document.getElementById('loan-term').value) * 12;
+
+      const monthly = amount * (rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+      const total = monthly * term;
+      const interest = total - amount;
+
+      document.getElementById('loan-monthly').textContent = '$' + monthly.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      document.getElementById('loan-interest').textContent = '$' + interest.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      document.getElementById('loan-total').textContent = '$' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      document.getElementById('loan-result').style.display = 'block';
+    }
+  </script>
+
+  <h2 class="section-title" id="mortgage">Mortgage & Real Estate</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Mortgage Calculator</h3>
+      <p>Estimate your monthly mortgage payment and total interest.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Amortization Calculator</h3>
+      <p>See how your loan balance decreases over time.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>House Affordability</h3>
+      <p>Find out how much house you can afford.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Refinance Calculator</h3>
+      <p>See if refinancing could save you money.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Rent vs Buy</h3>
+      <p>Compare the cost of renting versus buying.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Down Payment Calculator</h3>
+      <p>Calculate how much you need for a down payment.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="loan">Loans & Debt</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Auto Loan Calculator</h3>
+      <p>Calculate car loan payments and total cost.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Student Loan Calculator</h3>
+      <p>Plan repayment for your student loans.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Personal Loan Calculator</h3>
+      <p>Estimate payments for personal loans.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Debt Payoff Calculator</h3>
+      <p>Find the fastest way to pay off debt.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Credit Card Payoff</h3>
+      <p>See how long it takes to pay off credit card debt.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Debt Consolidation</h3>
+      <p>Compare consolidation options to save money.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="investment">Investment & Savings</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Compound Interest</h3>
+      <p>See how your money grows with compound interest.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Investment Calculator</h3>
+      <p>Project future value of your investments.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Savings Calculator</h3>
+      <p>Plan how fast you can reach your savings goal.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>ROI Calculator</h3>
+      <p>Calculate return on your investment.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>CD Calculator</h3>
+      <p>Compare certificate of deposit rates.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Inflation Calculator</h3>
+      <p>See how inflation affects your purchasing power.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="retirement">Retirement</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Retirement Calculator</h3>
+      <p>Plan how much you need to retire comfortably.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>401K Calculator</h3>
+      <p>See how your 401K grows over time.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>IRA Calculator</h3>
+      <p>Compare traditional vs Roth IRA benefits.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Social Security</h3>
+      <p>Estimate your Social Security benefits.</p>
+    </a>
+  </div>
+
+  <h2 class="section-title" id="tax">Tax & Salary</h2>
+  <div class="category-grid">
+    <a href="#" class="category-card">
+      <h3>Income Tax Calculator</h3>
+      <p>Estimate your federal and state income taxes.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Salary Calculator</h3>
+      <p>Convert between salary and hourly pay.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Take-Home Paycheck</h3>
+      <p>See what you actually take home after deductions.</p>
+    </a>
+    <a href="#" class="category-card">
+      <h3>Sales Tax Calculator</h3>
+      <p>Calculate sales tax on any purchase.</p>
+    </a>
+  </div>
+
+  <style>
+    .calc-card-blue { background: #f0f9ff; border: 1px solid #e0e7ff; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .calc-card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #4F46E5; }
+    .loan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .loan-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: #333; }
+    .loan-btn { width: 100%; padding: 10px; background: #4F46E5; color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 20px; }
+    .loan-btn:hover { background: #4338CA; }
+    .loan-result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .loan-result-label { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+    .loan-value-primary { font-size: 20px; font-weight: 700; color: #4F46E5; }
+    .loan-value-danger { font-size: 20px; font-weight: 700; color: #ef4444; }
+    .loan-value-success { font-size: 20px; font-weight: 700; color: #059669; }
+
+    :global(html.dark) .calc-card-blue { background: #0f1a2e; border-color: #1e2d4a; }
+    :global(html.dark) .calc-card-title { color: #818cf8; }
+    :global(html.dark) .loan-label { color: #ccc; }
+    :global(html.dark) .loan-btn { background: #4F46E5; }
+    :global(html.dark) .loan-result-label { color: #666; }
+    :global(html.dark) .result-card-sm { background: #1a1a2e; }
+  </style>
+</Layout>
