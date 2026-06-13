@@ -1,70 +1,67 @@
-// TDEE Lab AI Chat Widget — Powered by Gemini 3.5 Flash
+// TDEE Lab AI Chat Widget — Powered by Gemini
 // Secure backend proxy at {API_BASE}/api/chat
 
 const API_BASE = (window as any).__CHAT_API_BASE__ || 'http://localhost:3001';
 
-interface ChatPart {
-  text?: string;
-  inlineData?: { mimeType: string; data: string };
-}
+import { generateOfflineResponse } from './chatbot-core';
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  parts?: ChatPart[];
-  files?: FileInfo[];
+
+interface ChatPart {
+    text?: string;
+    inlineData?: { mimeType: string; data: string };
 }
 
 interface FileInfo {
-  name: string;
-  size: number;
-  type: string;
-  data?: string;
-  preview?: string;
+    name: string;
+    size: number;
+    type: string;
+    data?: string;
+    preview?: string;
+}
+
+interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+    parts?: ChatPart[];
+    files?: FileInfo[];
 }
 
 const WELCOME_MSG: ChatMessage = {
-  role: 'assistant',
-  content:
-    "Hello! I'm **TDEE Bot**, your AI health & fitness assistant.\n\n" +
-    'I can help you with:\n' +
-    '- **TDEE, BMR, BMI** calculations & explanations\n' +
-    '- **Nutrition & macros** advice\n' +
-    '- **Weight loss / muscle gain** guidance\n' +
-    '- **General health & fitness** questions\n' +
-    '- **Math, finance, age** calculations too!\n\n' +
-    'You can also **upload images, PDFs, or text files** for me to analyze.\n\n' +
-    '*How can I help you today?*',
+    role: 'assistant',
+    content:
+        '**TDEE Lab** — your AI health & fitness co-pilot.\n\n' +
+        "Drop your stats and I'll calculate your **TDEE / BMR / BMI** in seconds.\n\n" +
+        'I can also help with:\n' +
+        '* **Nutrition & macros** advice\n' +
+        '* **Weight loss / muscle gain** guidance\n' +
+        '* **Math & finance** calculations\n\n' +
+        '*How can I help?*',
 };
 
 let messages: ChatMessage[] = [];
 let isStreaming = false;
 
 export function initAIWidget() {
-  injectStyles();
-  buildWidget();
-  loadHistory();
-  bindUI();
+    injectStyles();
+    buildWidget();
+    loadHistory();
+    bindUI();
 }
-
-// ─── Inject CSS ────────────────────────────────────────────────────
 
 function injectStyles() {
-  const id = 'ai-widget-styles';
-  if (document.getElementById(id)) return;
+    const id = 'ai-widget-styles';
+    if (document.getElementById(id)) return;
 
-  const style = document.createElement('style');
-  style.id = id;
-  style.textContent = getCSS();
-  document.head.appendChild(style);
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = getCSS();
+    document.head.appendChild(style);
 }
 
-// ─── Build DOM ─────────────────────────────────────────────────────
-
 function buildWidget() {
-  const container = document.createElement('div');
-  container.id = 'ai-widget';
-  container.innerHTML = `
+    const container = document.createElement('div');
+    container.id = 'ai-widget';
+    container.innerHTML = `
     <button id="aiw-toggle" class="aiw-toggle" aria-label="Open AI chat">
       <svg class="aiw-toggle-icon-open" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -75,7 +72,6 @@ function buildWidget() {
     </button>
 
     <div id="aiw-panel" class="aiw-panel">
-      <!-- Header -->
       <div class="aiw-header">
         <div class="aiw-header-left">
           <div class="aiw-avatar">
@@ -87,8 +83,8 @@ function buildWidget() {
             </svg>
           </div>
           <div>
-            <div class="aiw-header-title">TDEE Bot</div>
-            <div class="aiw-header-status">Online &middot; Gemini 3.5 Flash</div>
+            <div class="aiw-header-title">TDEE Lab AI</div>
+            <div class="aiw-header-status">Smart mode — Gemini + Offline</div>
           </div>
         </div>
         <div class="aiw-header-actions">
@@ -108,16 +104,10 @@ function buildWidget() {
         </div>
       </div>
 
-      <!-- Messages -->
       <div id="aiw-messages" class="aiw-messages"></div>
-
-      <!-- Suggested prompts -->
       <div id="aiw-suggestions" class="aiw-suggestions" style="display:none"></div>
-
-      <!-- File preview strip -->
       <div id="aiw-file-strip" class="aiw-file-strip" style="display:none"></div>
 
-      <!-- Input area -->
       <div class="aiw-input-area">
         <button id="aiw-attach" class="aiw-input-btn" title="Attach file">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -133,7 +123,6 @@ function buildWidget() {
         </button>
       </div>
 
-      <!-- Footer -->
       <div id="aiw-footer" class="aiw-footer">
         <span id="aiw-token-count">0 chars</span>
         <span class="aiw-footer-sep">&middot;</span>
@@ -141,669 +130,568 @@ function buildWidget() {
       </div>
     </div>
   `;
-  document.body.appendChild(container);
+    document.body.appendChild(container);
 }
-
-// ─── Binding ───────────────────────────────────────────────────────
 
 function bindUI() {
-  const toggle = document.getElementById('aiw-toggle')!;
-  const panel = document.getElementById('aiw-panel')!;
-  const input = document.getElementById('aiw-input') as HTMLTextAreaElement;
-  const sendBtn = document.getElementById('aiw-send')!;
-  const attachBtn = document.getElementById('aiw-attach')!;
-  const fileInput = document.getElementById('aiw-file-input') as HTMLInputElement;
-  const clearBtn = document.getElementById('aiw-header-clear')!;
-  const exportBtn = document.getElementById('aiw-header-export')!;
-  const msgContainer = document.getElementById('aiw-messages')!;
-  const tokenCount = document.getElementById('aiw-token-count')!;
-  const suggestionsEl = document.getElementById('aiw-suggestions')!;
+    const toggle = document.getElementById('aiw-toggle')!;
+    const panel = document.getElementById('aiw-panel')!;
+    const input = document.getElementById('aiw-input') as HTMLTextAreaElement;
+    const sendBtn = document.getElementById('aiw-send')!;
+    const attachBtn = document.getElementById('aiw-attach')!;
+    const fileInput = document.getElementById('aiw-file-input') as HTMLInputElement;
+    const clearBtn = document.getElementById('aiw-header-clear')!;
+    const exportBtn = document.getElementById('aiw-header-export')!;
+    const msgContainer = document.getElementById('aiw-messages')!;
+    const tokenCount = document.getElementById('aiw-token-count')!;
+    const suggestionsEl = document.getElementById('aiw-suggestions')!;
 
-  const openIcon = toggle.querySelector('.aiw-toggle-icon-open') as SVGElement;
-  const closeIcon = toggle.querySelector('.aiw-toggle-icon-close') as SVGElement;
+    const openIcon = toggle.querySelector('.aiw-toggle-icon-open') as SVGElement;
+    const closeIcon = toggle.querySelector('.aiw-toggle-icon-close') as SVGElement;
 
-  let isOpen = false;
+    let isOpen = false;
 
-  function open() {
-    isOpen = true;
-    panel.classList.add('open');
-    openIcon.style.display = 'none';
-    closeIcon.style.display = 'block';
-    toggle.setAttribute('aria-label', 'Close AI chat');
-    if (msgContainer.children.length === 0) {
-      renderWelcome();
-    }
-    setTimeout(() => input.focus(), 300);
-  }
-
-  function close() {
-    isOpen = false;
-    panel.classList.remove('open');
-    openIcon.style.display = 'block';
-    closeIcon.style.display = 'none';
-    toggle.setAttribute('aria-label', 'Open AI chat');
-  }
-
-  toggle.addEventListener('click', () => (isOpen ? close() : open()));
-
-  // Auto-resize input
-  input.addEventListener('input', () => {
-    input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-    updateTokenCount();
-  });
-
-  // Send on Enter (Shift+Enter for newline)
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-
-  sendBtn.addEventListener('click', sendMessage);
-
-  // File attachment
-  attachBtn.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', handleFileSelect);
-
-  // Clear chat
-  clearBtn.addEventListener('click', () => {
-    if (confirm('Clear the entire conversation?')) {
-      messages = [];
-      saveHistory();
-      msgContainer.innerHTML = '';
-      suggestionsEl.style.display = 'none';
-      renderWelcome();
-    }
-  });
-
-  // Export chat
-  exportBtn.addEventListener('click', exportChat);
-
-  // Delegated click on code block copy buttons
-  msgContainer.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-
-    // Copy code block
-    if (target.closest('.aiw-code-copy')) {
-      const btn = target.closest('.aiw-code-copy') as HTMLElement;
-      const blockId = btn.dataset.blockId;
-      const codeEl = document.getElementById(blockId || '');
-      if (codeEl) {
-        navigator.clipboard.writeText(codeEl.textContent || '').then(() => {
-          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied';
-          setTimeout(() => {
-            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
-          }, 2000);
-        });
-      }
-      return;
+    function open() {
+        isOpen = true;
+        panel.classList.add('open');
+        openIcon.style.display = 'none';
+        closeIcon.style.display = 'block';
+        toggle.setAttribute('aria-label', 'Close AI chat');
+        if (msgContainer.children.length === 0) renderWelcome();
+        setTimeout(() => input.focus(), 300);
     }
 
-    // Copy entire message
-    if (target.closest('.aiw-copy-msg')) {
-      const msgEl = target.closest('.aiw-msg') as HTMLElement;
-      const content = msgEl?.dataset.content || '';
-      navigator.clipboard.writeText(content).then(() => {
-        const btn = target.closest('.aiw-copy-msg') as HTMLElement;
-        btn.classList.add('copied');
-        btn.title = 'Copied!';
-        setTimeout(() => {
-          btn.classList.remove('copied');
-          btn.title = 'Copy message';
-        }, 2000);
-      });
-      return;
+    function close() {
+        isOpen = false;
+        panel.classList.remove('open');
+        openIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+        toggle.setAttribute('aria-label', 'Open AI chat');
     }
 
-    // Suggested prompt click
-    if (target.closest('.aiw-suggestion-btn')) {
-      const btn = target.closest('.aiw-suggestion-btn') as HTMLElement;
-      const prompt = btn.dataset.prompt || '';
-      input.value = prompt;
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-      updateTokenCount();
-      suggestionsEl.style.display = 'none';
-      sendMessage();
-    }
-  });
+    toggle.addEventListener('click', () => (isOpen ? close() : open()));
+
+    input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        updateTokenCount(tokenCount, input.value);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            void sendMessage();
+        }
+    });
+
+    sendBtn.addEventListener('click', () => void sendMessage());
+
+    attachBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileSelect);
+
+    clearBtn.addEventListener('click', () => {
+        if (confirm('Clear the entire conversation?')) {
+            messages = [];
+            saveHistory();
+            msgContainer.innerHTML = '';
+            suggestionsEl.style.display = 'none';
+            renderWelcome();
+        }
+    });
+
+    exportBtn.addEventListener('click', exportChat);
+
+    msgContainer.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+
+        if (target.closest('.aiw-code-copy')) {
+            const btn = target.closest('.aiw-code-copy') as HTMLElement;
+            const blockId = btn.dataset.blockId;
+            const codeEl = document.getElementById(blockId || '');
+            if (codeEl) {
+                navigator.clipboard.writeText(codeEl.textContent || '').then(() => {
+                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied';
+                    setTimeout(() => {
+                        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
+                    }, 2000);
+                });
+            }
+            return;
+        }
+
+        if (target.closest('.aiw-copy-msg')) {
+            const msgEl = target.closest('.aiw-msg') as HTMLElement;
+            const content = msgEl?.dataset.content || '';
+            navigator.clipboard.writeText(content).then(() => {
+                const btn = target.closest('.aiw-copy-msg') as HTMLElement;
+                btn.classList.add('copied');
+                btn.title = 'Copied!';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.title = 'Copy message';
+                }, 2000);
+            });
+            return;
+        }
+
+        if (target.closest('.aiw-suggestion-btn')) {
+            const btn = target.closest('.aiw-suggestion-btn') as HTMLElement;
+            const prompt = btn.dataset.prompt || '';
+            input.value = prompt;
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            updateTokenCount(tokenCount, input.value);
+            suggestionsEl.style.display = 'none';
+            void sendMessage();
+        }
+    });
 }
 
-// ─── Token Counter ─────────────────────────────────────────────────
-
-function updateTokenCount() {
-  const input = document.getElementById('aiw-input') as HTMLTextAreaElement;
-  const tokenCount = document.getElementById('aiw-token-count');
-  if (tokenCount && input) {
-    const len = input.value.length;
-    tokenCount.textContent = `${len} char${len !== 1 ? 's' : ''}`;
-  }
+function updateTokenCount(tokenCountEl: HTMLElement, text: string) {
+    const len = text.length;
+    tokenCountEl.textContent = `${len} char${len !== 1 ? 's' : ''}`;
 }
-
-// ─── Suggestions ───────────────────────────────────────────────────
-
-function showSuggestions(responseText: string) {
-  const el = document.getElementById('aiw-suggestions')!;
-  const lower = responseText.toLowerCase();
-
-  let prompts: string[] = [];
-
-  if (lower.includes('tdee') || lower.includes('calorie')) {
-    prompts = [
-      'Calculate my TDEE',
-      'What macros should I eat?',
-      'How accurate is TDEE?',
-    ];
-  } else if (lower.includes('bmr') || lower.includes('basal')) {
-    prompts = [
-      'How do I increase my BMR?',
-      'BMR vs TDEE — explain the difference',
-      'What affects BMR the most?',
-    ];
-  } else if (lower.includes('protein') || lower.includes('macro')) {
-    prompts = [
-      'How much protein for muscle gain?',
-      'Best protein sources for vegetarians',
-      'How to track macros easily?',
-    ];
-  } else if (lower.includes('weight') || lower.includes('loss') || lower.includes('fat')) {
-    prompts = [
-      'Safe rate of weight loss?',
-      'How to break a weight loss plateau?',
-      'Calorie deficit without losing muscle?',
-    ];
-  } else if (lower.includes('bmi')) {
-    prompts = [
-      'Is BMI accurate for athletes?',
-      'How to lower my BMI?',
-      'BMI categories explained',
-    ];
-  } else {
-    prompts = [
-      'Calculate my TDEE',
-      'What are macros?',
-      'How to lose weight safely?',
-    ];
-  }
-
-  el.innerHTML =
-    '<div class="aiw-suggestions-label">Suggested</div>' +
-    prompts
-      .map((p) => `<button class="aiw-suggestion-btn" data-prompt="${escapeAttr(p)}">${escapeHTML(p)}</button>`)
-      .join('');
-
-  el.style.display = 'flex';
-}
-
-function hideSuggestions() {
-  const el = document.getElementById('aiw-suggestions')!;
-  el.style.display = 'none';
-}
-
-// ─── Export Chat ───────────────────────────────────────────────────
-
-function exportChat() {
-  if (messages.length === 0) {
-    alert('No messages to export.');
-    return;
-  }
-
-  let md = '# TDEE Bot Chat Export\n\n';
-  md += `Exported: ${new Date().toLocaleString()}\n\n---\n\n`;
-
-  for (const msg of messages) {
-    const role = msg.role === 'user' ? '**You**' : '**TDEE Bot**';
-    md += `### ${role}\n\n${msg.content}\n\n---\n\n`;
-  }
-
-  const blob = new Blob([md], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `tdee-bot-chat-${new Date().toISOString().slice(0, 10)}.md`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ─── Rendering ─────────────────────────────────────────────────────
 
 function renderWelcome() {
-  addMessage(WELCOME_MSG);
+    addMessage(WELCOME_MSG);
 }
-
-let messageCounter = 0;
-
-function addMessage(msg: ChatMessage) {
-  const container = document.getElementById('aiw-messages')!;
-  const div = document.createElement('div');
-  div.className = `aiw-msg aiw-msg-${msg.role}`;
-  div.dataset.content = msg.content;
-
-  // File previews if present
-  let fileHTML = '';
-  if (msg.files && msg.files.length > 0) {
-    fileHTML = '<div class="aiw-msg-files">';
-    for (const f of msg.files) {
-      if (f.preview && f.type.startsWith('image/')) {
-        fileHTML += `<div class="aiw-file-preview"><img src="${f.preview}" alt="${f.name}"><span class="aiw-file-name">${escapeHTML(f.name)}</span></div>`;
-      } else {
-        fileHTML += `<div class="aiw-file-preview aiw-file-doc"><span class="aiw-file-icon">${getFileIcon(f.type)}</span><span class="aiw-file-name">${escapeHTML(f.name)}</span></div>`;
-      }
-    }
-    fileHTML += '</div>';
-  }
-
-  const copyBtn =
-    msg.role === 'assistant'
-      ? `<button class="aiw-msg-actions"><span class="aiw-copy-msg" title="Copy message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span></button>`
-      : '';
-
-  div.innerHTML =
-    fileHTML +
-    `<div class="aiw-msg-bubble">${formatContent(msg.content)}</div>` +
-    copyBtn;
-
-  container.appendChild(div);
-  scrollToBottom();
-}
-
-function addStreamingMessage(): HTMLElement {
-  const container = document.getElementById('aiw-messages')!;
-  const div = document.createElement('div');
-  div.className = 'aiw-msg aiw-msg-assistant';
-  div.innerHTML =
-    '<div class="aiw-msg-bubble aiw-streaming"></div>' +
-    '<button class="aiw-msg-actions"><span class="aiw-copy-msg" title="Copy message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span></button>';
-  container.appendChild(div);
-  scrollToBottom();
-  return div.querySelector('.aiw-msg-bubble')!;
-}
-
-function updateStreamingBubble(el: HTMLElement, text: string) {
-  el.innerHTML = formatContent(text);
-  scrollToBottom();
-}
-
-function finalizeStreamingBubble(el: HTMLElement, text: string) {
-  el.classList.remove('aiw-streaming');
-  el.innerHTML = formatContent(text);
-
-  // Update parent dataset.content for copy
-  const msgEl = el.closest('.aiw-msg') as HTMLElement;
-  if (msgEl) msgEl.dataset.content = text;
-
-  scrollToBottom();
-
-  // Show suggestions after assistant response
-  if (text.length > 20) {
-    showSuggestions(text);
-  }
-}
-
-function showTypingIndicator() {
-  const container = document.getElementById('aiw-messages')!;
-  const div = document.createElement('div');
-  div.id = 'aiw-typing';
-  div.className = 'aiw-msg aiw-msg-assistant';
-  div.innerHTML =
-    '<div class="aiw-msg-bubble"><div class="aiw-thinking"><span class="aiw-thinking-label">Thinking</span><div class="aiw-typing-dots"><span></span><span></span><span></span></div></div></div>';
-  container.appendChild(div);
-  scrollToBottom();
-}
-
-function removeTypingIndicator() {
-  const el = document.getElementById('aiw-typing');
-  if (el) el.remove();
-}
-
-function scrollToBottom() {
-  const container = document.getElementById('aiw-messages')!;
-  requestAnimationFrame(() => {
-    container.scrollTop = container.scrollHeight;
-  });
-}
-
-// ─── Markdown Renderer ─────────────────────────────────────────────
 
 let codeBlockCounter = 0;
 
 function formatContent(text: string): string {
-  let html = text;
+    let html = text;
+    html = html
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 
-  // Escape HTML
-  html = html
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
+        const id = `aiw-code-${codeBlockCounter++}`;
+        const langLabel = lang ? `<span class="aiw-code-lang">${lang}</span>` : '';
+        return `<div class="aiw-code-block">${langLabel}<button class="aiw-code-copy" data-block-id="${id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button><pre id="${id}"><code>${code.trim()}</code></pre></div>`;
+    });
 
-  // Code blocks: ```lang\n...\n```
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
-    const id = `aiw-code-${codeBlockCounter++}`;
-    const langLabel = lang ? `<span class="aiw-code-lang">${lang}</span>` : '';
-    return `<div class="aiw-code-block">${langLabel}<button class="aiw-code-copy" data-block-id="${id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button><pre id="${id}"><code>${code.trim()}</code></pre></div>`;
-  });
+    html = html.replace(/`([^`]+)`/g, '<code class="aiw-code">$1</code>');
+    html = html.replace(/^### (.+)$/gm, '<div class="aiw-h3">$1</div>');
+    html = html.replace(/^## (.+)$/gm, '<div class="aiw-h2">$1</div>');
+    html = html.replace(/^# (.+)$/gm, '<div class="aiw-h1">$1</div>');
 
-  // Inline code: `...`
-  html = html.replace(/`([^`]+)`/g, '<code class="aiw-code">$1</code>');
+    html = html.replace(/^> (.+)$/gm, '<div class="aiw-blockquote">$1</div>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+    html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
 
-  // Headers: ### / ## / #
-  html = html.replace(/^### (.+)$/gm, '<div class="aiw-h3">$1</div>');
-  html = html.replace(/^## (.+)$/gm, '<div class="aiw-h2">$1</div>');
-  html = html.replace(/^# (.+)$/gm, '<div class="aiw-h1">$1</div>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="aiw-link" href="$2" target="_blank" rel="noopener">$1</a>');
+    html = html.replace(/^(-{3,}|\*{3,})$/gm, '<hr class="aiw-hr">');
 
-  // Blockquotes: > ...
-  html = html.replace(
-    /^&gt; (.+)$/gm,
-    '<div class="aiw-blockquote">$1</div>'
-  );
+    html = formatTables(html);
 
-  // Bold: **...**
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/^[•\-] (.+)$/gm, '<div class="aiw-list-item"><span class="aiw-bullet">&bull;</span> $1</div>');
+    html = html.replace(/^(\d+)\. (.+)$/gm, '<div class="aiw-list-item"><span class="aiw-num">$1.</span> $2</div>');
 
-  // Italic: *...*
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-
-  // Strikethrough: ~~...~~
-  html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
-
-  // Links: [text](url)
-  html = html.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a class="aiw-link" href="$2" target="_blank" rel="noopener">$1</a>'
-  );
-
-  // Horizontal rules: --- or ***
-  html = html.replace(/^(-{3,}|\*{3,})$/gm, '<hr class="aiw-hr">');
-
-  // Tables: | ... | ... |
-  html = formatTables(html);
-
-  // Bullet lists: - ... or • ...
-  html = html.replace(/^[•\-] (.+)$/gm, '<div class="aiw-list-item"><span class="aiw-bullet">&bull;</span> $1</div>');
-
-  // Numbered lists: 1. ... etc.
-  html = html.replace(/^(\d+)\. (.+)$/gm, '<div class="aiw-list-item"><span class="aiw-num">$1.</span> $2</div>');
-
-  // Line breaks
-  html = html.replace(/\n/g, '<br>');
-
-  // Clean up multiple <br> after block elements
-  html = html.replace(/(<\/div>)<br>/g, '$1');
-  html = html.replace(/(<hr[^>]*>)<br>/g, '$1');
-
-  return html;
+    html = html.replace(/\n/g, '<br>');
+    html = html.replace(/(<\/div>)<br>/g, '$1');
+    html = html.replace(/(<hr[^>]*>)<br>/g, '$1');
+    return html;
 }
 
 function formatTables(html: string): string {
-  const lines = html.split('<br>');
-  let inTable = false;
-  let tableLines: string[] = [];
-  let result: string[] = [];
+    const lines = html.split('<br>');
+    let inTable = false;
+    let tableLines: string[] = [];
+    let result: string[] = [];
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-      inTable = true;
-      tableLines.push(trimmed);
-    } else {
-      if (inTable) {
-        result.push(buildTable(tableLines));
-        tableLines = [];
-        inTable = false;
-      }
-      result.push(line);
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+            inTable = true;
+            tableLines.push(trimmed);
+        } else {
+            if (inTable) {
+                result.push(buildTable(tableLines));
+                tableLines = [];
+                inTable = false;
+            }
+            result.push(line);
+        }
     }
-  }
 
-  if (inTable && tableLines.length > 0) {
-    result.push(buildTable(tableLines));
-  }
-
-  return result.join('<br>');
+    if (inTable && tableLines.length > 0) result.push(buildTable(tableLines));
+    return result.join('<br>');
 }
 
 function buildTable(lines: string[]): string {
-  const rows = lines
-    .map((l) =>
-      l
-        .split('|')
-        .slice(1, -1)
-        .map((c) => c.trim())
-    )
-    .filter(
-      (cells) => cells.length > 0 && !cells.every((c) => /^[-:]+$/.test(c))
-    );
+    const rows = lines
+        .map((l) =>
+            l
+                .split('|')
+                .slice(1, -1)
+                .map((c) => c.trim()),
+        )
+        .filter((cells) => cells.length > 0 && !cells.every((c) => /^[-:]+$/.test(c)));
 
-  if (rows.length === 0) return '';
+    if (rows.length === 0) return '';
 
-  let tableHTML = '<div class="aiw-table-wrap"><table class="aiw-table">';
+    let tableHTML = '<div class="aiw-table-wrap"><table class="aiw-table">';
+    tableHTML += '<thead><tr>';
+    for (const cell of rows[0]) tableHTML += `<th>${cell}</th>`;
+    tableHTML += '</tr></thead>';
 
-  // First row = header
-  tableHTML += '<thead><tr>';
-  for (const cell of rows[0]) {
-    tableHTML += `<th>${cell}</th>`;
-  }
-  tableHTML += '</tr></thead>';
-
-  // Remaining rows = body
-  if (rows.length > 1) {
-    tableHTML += '<tbody>';
-    for (let i = 1; i < rows.length; i++) {
-      tableHTML += '<tr>';
-      for (const cell of rows[i]) {
-        tableHTML += `<td>${cell}</td>`;
-      }
-      tableHTML += '</tr>';
+    if (rows.length > 1) {
+        tableHTML += '<tbody>';
+        for (let i = 1; i < rows.length; i++) {
+            tableHTML += '<tr>';
+            for (const cell of rows[i]) tableHTML += `<td>${cell}</td>`;
+            tableHTML += '</tr>';
+        }
+        tableHTML += '</tbody>';
     }
-    tableHTML += '</tbody>';
-  }
 
-  tableHTML += '</table></div>';
-  return tableHTML;
+    tableHTML += '</table></div>';
+    return tableHTML;
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────
-
 function escapeHTML(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function escapeAttr(str: string): string {
-  return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function getFileIcon(mime: string): string {
-  if (mime.startsWith('image/')) return '🖼';
-  if (mime === 'application/pdf') return '📄';
-  return '📎';
+    if (mime.startsWith('image/')) return '🖼';
+    if (mime === 'application/pdf') return '📄';
+    return '📎';
 }
-
-// ─── File Handling ─────────────────────────────────────────────────
 
 let pendingFiles: FileInfo[] = [];
 
 function handleFileSelect(this: HTMLInputElement) {
-  const files = this.files;
-  if (!files || files.length === 0) return;
+    const files = this.files;
+    if (!files || files.length === 0) return;
 
-  for (const file of Array.from(files)) {
-    const info: FileInfo = { name: file.name, size: file.size, type: file.type };
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (file.type.startsWith('image/')) {
-        info.preview = result;
-      }
-      info.data = result;
-      pendingFiles.push(info);
-      updateFileStrip();
-    };
-    reader.readAsDataURL(file);
-  }
+    for (const file of Array.from(files)) {
+        const info: FileInfo = { name: file.name, size: file.size, type: file.type };
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const result = e.target?.result as string;
+            if (file.type.startsWith('image/')) info.preview = result;
+            info.data = result;
+            pendingFiles.push(info);
+            updateFileStrip();
+        };
+        reader.readAsDataURL(file);
+    }
 
-  this.value = '';
+    this.value = '';
 }
 
 function updateFileStrip() {
-  const strip = document.getElementById('aiw-file-strip')!;
-  if (pendingFiles.length === 0) {
-    strip.style.display = 'none';
-    return;
-  }
-  strip.style.display = 'flex';
-  strip.innerHTML = pendingFiles
-    .map(
-      (f, i) => `
+    const strip = document.getElementById('aiw-file-strip')!;
+    if (pendingFiles.length === 0) {
+        strip.style.display = 'none';
+        return;
+    }
+
+    strip.style.display = 'flex';
+    strip.innerHTML = pendingFiles
+        .map(
+            (f, i) => `
     <div class="aiw-file-chip">
       ${f.preview ? `<img src="${f.preview}" class="aiw-chip-preview">` : `<span class="aiw-chip-icon">${getFileIcon(f.type)}</span>`}
       <span class="aiw-chip-name">${escapeHTML(f.name)}</span>
       <button class="aiw-chip-remove" data-index="${i}">&times;</button>
-    </div>`
-    )
-    .join('');
+    </div>`,
+        )
+        .join('');
 
-  strip.querySelectorAll('.aiw-chip-remove').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt((btn as HTMLElement).dataset.index || '0');
-      pendingFiles.splice(idx, 1);
-      updateFileStrip();
+    strip.querySelectorAll('.aiw-chip-remove').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt((btn as HTMLElement).dataset.index || '0');
+            pendingFiles.splice(idx, 1);
+            updateFileStrip();
+        });
     });
-  });
 }
-
-// ─── Send & Stream ─────────────────────────────────────────────────
 
 async function sendMessage() {
-  if (isStreaming) return;
+    if (isStreaming) return;
 
-  const input = document.getElementById('aiw-input') as HTMLTextAreaElement;
-  const text = input.value.trim();
-  if (!text && pendingFiles.length === 0) return;
+    const input = document.getElementById('aiw-input') as HTMLTextAreaElement;
+    const tokenCount = document.getElementById('aiw-token-count')!;
+    const suggestionsEl = document.getElementById('aiw-suggestions')!;
 
-  const userMsg: ChatMessage = { role: 'user', content: text, files: [...pendingFiles] };
-  messages.push(userMsg);
-  addMessage(userMsg);
-  input.value = '';
-  input.style.height = 'auto';
-  hideSuggestions();
+    const text = input.value.trim();
+    if (!text && pendingFiles.length === 0) return;
 
-  // Clear pending files
-  pendingFiles = [];
-  updateFileStrip();
-  updateTokenCount();
+    const userMsg: ChatMessage = { role: 'user', content: text, files: [...pendingFiles] };
+    messages.push(userMsg);
+    addMessage(userMsg);
 
-  showTypingIndicator();
-  isStreaming = true;
+    input.value = '';
+    input.style.height = 'auto';
+    suggestionsEl.style.display = 'none';
 
-  try {
-    // Build parts for the API
-    const parts: ChatPart[] = [];
-    if (text) parts.push({ text });
+    pendingFiles = [];
+    updateFileStrip();
+    tokenCount.textContent = '0 chars';
 
-    // Include file data from the message
-    if (userMsg.files && userMsg.files.length > 0) {
-      for (const f of userMsg.files) {
-        if (f.data) {
-          const base64 = f.data.split(',')[1];
-          parts.push({ inlineData: { mimeType: f.type, data: base64 } });
+    showTypingIndicator();
+    isStreaming = true;
+
+    try {
+        const parts: ChatPart[] = [];
+        if (text) parts.push({ text });
+
+        if (userMsg.files && userMsg.files.length > 0) {
+            for (const f of userMsg.files) {
+                if (f.data) {
+                    const base64 = f.data.split(',')[1];
+                    parts.push({ inlineData: { mimeType: f.type, data: base64 } });
+                }
+            }
         }
-      }
+
+        const apiMessages = [
+            ...messages.slice(0, -1).map((m) => ({ role: m.role, parts: [{ text: m.content }] })),
+            {
+                role: 'user',
+                parts,
+            },
+        ];
+
+        // Add persona + formatting rules (server supports systemInstruction, but this also helps offline)
+        // We embed as a first text part if backend ignores systemInstruction for some reason.
+        apiMessages[apiMessages.length - 1] = {
+            role: 'user',
+            parts: [
+                {
+                    text:
+                        'You are the AI assistant for TDEE Lab — a sleek, modern health & fitness utility. Be direct, concise, and subtly witty. Use markdown: **bold** for key metrics, bullet points for lists, `inline code` for numbers. Never hallucinate data. If user asks for a calculation, show the math. Stay on-topic. After answering, offer a logical next step.',
+                },
+                ...((apiMessages[apiMessages.length - 1] as any).parts || []),
+            ],
+        };
+
+        const response = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: apiMessages }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: 'Request failed' }));
+            throw new Error(err.error || `HTTP ${response.status}`);
+        }
+
+        removeTypingIndicator();
+        const bubble = addStreamingMessage();
+        let fullResponse = '';
+
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            fullResponse += chunk;
+            updateStreamingBubble(bubble, fullResponse);
+        }
+
+        finalizeStreamingBubble(bubble, fullResponse);
+        const assistantMsg: ChatMessage = { role: 'assistant', content: fullResponse };
+        messages.push(assistantMsg);
+        saveHistory();
+    } catch (err: any) {
+        // Offline fallback (never fail silently)
+        removeTypingIndicator();
+        const offlineText = generateOfflineResponse(text);
+        const assistantMsg: ChatMessage = {
+            role: 'assistant',
+            content:
+                `**Offline mode** — backend unavailable, using local calculations.\n\n${offlineText}`,
+        };
+
+        addMessage(assistantMsg);
+        messages.push(assistantMsg);
+        saveHistory();
+
+        // If the user wants, we can show error in console only
+        console.warn('AI widget backend failed, using offline fallback:', err?.message || err);
+    } finally {
+        isStreaming = false;
     }
-
-    // Build API payload: send full history + new message with files
-    const apiMessages = [
-      ...messages.slice(0, -1).map((m) => ({
-        role: m.role,
-        parts: [{ text: m.content }],
-      })),
-      { role: 'user', parts },
-    ];
-
-    const response = await fetch(`${API_BASE}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: apiMessages }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(err.error || `HTTP ${response.status}`);
-    }
-
-    removeTypingIndicator();
-    const bubble = addStreamingMessage();
-    let fullResponse = '';
-
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      fullResponse += chunk;
-      updateStreamingBubble(bubble, fullResponse);
-    }
-
-    finalizeStreamingBubble(bubble, fullResponse);
-
-    const assistantMsg: ChatMessage = { role: 'assistant', content: fullResponse };
-    messages.push(assistantMsg);
-    saveHistory();
-  } catch (err: any) {
-    removeTypingIndicator();
-    const errorMsg: ChatMessage = {
-      role: 'assistant',
-      content: `**Sorry, something went wrong.**\n\n${err.message || 'Please try again or check your connection.'}\n\nIf the issue persists, the server may be offline.`,
-    };
-    addMessage(errorMsg);
-    messages.push(errorMsg);
-  } finally {
-    isStreaming = false;
-  }
 }
 
-// ─── History (sessionStorage) ──────────────────────────────────────
+function showTypingIndicator() {
+    const container = document.getElementById('aiw-messages')!;
+    const div = document.createElement('div');
+    div.id = 'aiw-typing';
+    div.className = 'aiw-msg aiw-msg-assistant';
+    div.innerHTML =
+        '<div class="aiw-msg-bubble"><div class="aiw-thinking"><span class="aiw-thinking-label">Thinking</span><div class="aiw-typing-dots"><span></span><span></span><span></span></div></div></div>';
+    container.appendChild(div);
+    scrollToBottom();
+}
+
+function removeTypingIndicator() {
+    const el = document.getElementById('aiw-typing');
+    if (el) el.remove();
+}
+
+function addStreamingMessage(): HTMLElement {
+    const container = document.getElementById('aiw-messages')!;
+    const div = document.createElement('div');
+    div.className = 'aiw-msg aiw-msg-assistant';
+    div.innerHTML =
+        '<div class="aiw-msg-bubble aiw-streaming"></div>' +
+        '<button class="aiw-msg-actions"><span class="aiw-copy-msg" title="Copy message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span></button>';
+    container.appendChild(div);
+    scrollToBottom();
+    return div.querySelector('.aiw-msg-bubble')!;
+}
+
+function updateStreamingBubble(el: HTMLElement, text: string) {
+    el.innerHTML = formatContent(text);
+    scrollToBottom();
+}
+
+function finalizeStreamingBubble(el: HTMLElement, text: string) {
+    el.classList.remove('aiw-streaming');
+    el.innerHTML = formatContent(text);
+
+    const msgEl = el.closest('.aiw-msg') as HTMLElement;
+    if (msgEl) msgEl.dataset.content = text;
+
+    scrollToBottom();
+
+    if (text.length > 20) showSuggestions(text);
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('aiw-messages')!;
+    requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function addMessage(msg: ChatMessage) {
+    const container = document.getElementById('aiw-messages')!;
+    const div = document.createElement('div');
+    div.className = `aiw-msg aiw-msg-${msg.role}`;
+    div.dataset.content = msg.content;
+
+    let fileHTML = '';
+    if (msg.files && msg.files.length > 0) {
+        fileHTML = '<div class="aiw-msg-files">';
+        for (const f of msg.files) {
+            if (f.preview && f.type.startsWith('image/')) {
+                fileHTML += `<div class="aiw-file-preview"><img src="${f.preview}" alt="${f.name}"><span class="aiw-file-name">${escapeHTML(f.name)}</span></div>`;
+            } else {
+                fileHTML += `<div class="aiw-file-preview aiw-file-doc"><span class="aiw-file-icon">${getFileIcon(f.type)}</span><span class="aiw-file-name">${escapeHTML(f.name)}</span></div>`;
+            }
+        }
+        fileHTML += '</div>';
+    }
+
+    const copyBtn =
+        msg.role === 'assistant'
+            ? `<button class="aiw-msg-actions"><span class="aiw-copy-msg" title="Copy message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span></button>`
+            : '';
+
+    div.innerHTML = fileHTML + `<div class="aiw-msg-bubble">${formatContent(msg.content)}</div>` + copyBtn;
+    container.appendChild(div);
+    scrollToBottom();
+}
+
+function showSuggestions(responseText: string) {
+    const el = document.getElementById('aiw-suggestions')!;
+    const lower = responseText.toLowerCase();
+
+    let prompts: string[] = [];
+    if (lower.includes('tdee') || lower.includes('calorie')) {
+        prompts = ['Calculate my TDEE', 'What macros should I eat?', 'How accurate is TDEE?'];
+    } else if (lower.includes('bmr') || lower.includes('basal')) {
+        prompts = ['How do I increase my BMR?', 'BMR vs TDEE — explain the difference', 'What affects BMR the most?'];
+    } else if (lower.includes('protein') || lower.includes('macro')) {
+        prompts = ['How much protein for muscle gain?', 'Best protein sources for vegetarians', 'How to track macros?'];
+    } else if (lower.includes('weight') || lower.includes('loss') || lower.includes('fat')) {
+        prompts = ['Safe rate of weight loss?', 'How to break a plateau?', 'Calorie deficit without losing muscle?'];
+    } else if (lower.includes('bmi')) {
+        prompts = ['Is BMI accurate for athletes?', 'How to lower my BMI?', 'BMI categories explained'];
+    } else {
+        prompts = ['Calculate my TDEE', 'What are macros?', 'How to lose weight safely?'];
+    }
+
+    el.innerHTML =
+        '<div class="aiw-suggestions-label">Suggested</div>' +
+        prompts
+            .map((p) => `<button class="aiw-suggestion-btn" data-prompt="${escapeAttr(p)}">${escapeHTML(p)}</button>`)
+            .join('');
+
+    el.style.display = 'flex';
+}
+
+function hideSuggestions() {
+    const el = document.getElementById('aiw-suggestions')!;
+    el.style.display = 'none';
+}
 
 const HISTORY_KEY = 'tdee_lab_chat_history';
 
 function saveHistory() {
-  try {
-    // Strip file previews from saved history (too large)
-    const clean = messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-      files: m.files
-        ? m.files.map((f) => ({ name: f.name, size: f.size, type: f.type }))
-        : undefined,
-    }));
-    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(clean));
-  } catch {}
+    try {
+        const clean = messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+            files: m.files ? m.files.map((f) => ({ name: f.name, size: f.size, type: f.type })) : undefined,
+        }));
+        sessionStorage.setItem(HISTORY_KEY, JSON.stringify(clean));
+    } catch { }
 }
 
 function loadHistory() {
-  try {
-    const saved = sessionStorage.getItem(HISTORY_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        messages = parsed;
-        for (const msg of messages) {
-          addMessage(msg);
+    try {
+        const saved = sessionStorage.getItem(HISTORY_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                messages = parsed;
+                for (const msg of messages) addMessage(msg);
+                return;
+            }
         }
-        return;
-      }
-    }
-  } catch {}
-  renderWelcome();
+    } catch { }
+    renderWelcome();
 }
 
-// ─── CSS ───────────────────────────────────────────────────────────
+function exportChat() {
+    if (messages.length === 0) {
+        alert('No messages to export.');
+        return;
+    }
+
+    let md = '# TDEE Lab AI Chat Export\n\n';
+    md += `Exported: ${new Date().toLocaleString()}\n\n---\n\n`;
+
+    for (const msg of messages) {
+        const role = msg.role === 'user' ? '**You**' : '**TDEE Lab AI**';
+        md += `### ${role}\n\n${msg.content}\n\n---\n\n`;
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tdee-lab-chat-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
 function getCSS(): string {
-  return `
+    return `
 #ai-widget {
   position: fixed;
   bottom: 24px;
@@ -1503,3 +1391,4 @@ html.dark .aiw-footer {
 }
 `;
 }
+
