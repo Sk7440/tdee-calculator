@@ -29,17 +29,31 @@ interface ChatMessage {
 const WELCOME_MSG: ChatMessage = {
     role: 'assistant',
     content:
-        '**TDEE Lab** — your AI health & fitness co-pilot.\n\n' +
-        "Drop your stats and I'll calculate your **TDEE / BMR / BMI** in seconds.\n\n" +
-        'I can also help with:\n' +
-        '* **Nutrition & macros** advice\n' +
-        '* **Weight loss / muscle gain** guidance\n' +
-        '* **Math & finance** calculations\n\n' +
-        '*How can I help?*',
+        '**TDEE Lab** — your all-in-one health & fitness toolkit.\n\n' +
+        "I can use every calculator on the site. Here's what I can do:\n\n" +
+        '* **TDEE / BMR / BMI** — full health calculator at /tdee-calculator/\n' +
+        '* **Calorie goals & macros** — for cut, maintain, or bulk\n' +
+        '* **Financial tools** — loans, mortgages, investments at /financial-calculator/\n' +
+        '* **Math tools** — basic, fractions, percentages at /math-calculator/\n' +
+        '* **Age / date / conversions** at /other-calculator/\n' +
+        '* **Educational guides** at /what-is-tdee/ and /bmr-vs-tdee/\n\n' +
+        'Drop your stats or ask a question — I\'ll handle the rest.',
 };
 
 let messages: ChatMessage[] = [];
 let isStreaming = false;
+
+// ─── Page context detection ───────────────────────────────────────
+function getPageContext(): string {
+    const path = window.location.pathname;
+    if (path.includes('/tdee-calculator')) return 'The user is on the **TDEE Calculator** page (/tdee-calculator/) — they can calculate BMR, TDEE, BMI, calorie goals, and macros.';
+    if (path.includes('/what-is-tdee')) return 'The user is on the **What is TDEE?** educational page (/what-is-tdee/) — learn what TDEE is, how it\'s calculated, and why it matters.';
+    if (path.includes('/bmr-vs-tdee')) return 'The user is on the **BMR vs TDEE** comparison page (/bmr-vs-tdee/) — understand the difference between Basal Metabolic Rate and Total Daily Energy Expenditure.';
+    if (path.includes('/math-calculator')) return 'The user is on the **Math Calculator** page (/math-calculator/) — basic math, fractions, percentages, and scientific calculations.';
+    if (path.includes('/financial-calculator')) return 'The user is on the **Financial Calculator** page (/financial-calculator/) — loan, mortgage, and investment calculators.';
+    if (path.includes('/other-calculator')) return 'The user is on the **Other Calculators** page (/other-calculator/) — age calculator, date calculator, and conversion tools.';
+    return '';
+}
 
 export function initAIWidget() {
     injectStyles();
@@ -463,13 +477,15 @@ async function sendMessage() {
 
         // Add persona + formatting rules (server supports systemInstruction, but this also helps offline)
         // We embed as a first text part if backend ignores systemInstruction for some reason.
+        const pageCtx = getPageContext();
+        const personaText = pageCtx
+            ? `You are the AI assistant for TDEE Lab. Current page context: ${pageCtx}. Be concise, use markdown. Never hallucinate data. After answering, suggest the next relevant action or page on the site.`
+            : 'You are the AI assistant for TDEE Lab — a sleek, modern health & fitness utility. Be direct, concise, and subtly witty. Use markdown: **bold** for key metrics, bullet points for lists, `inline code` for numbers. Never hallucinate data. If user asks for a calculation, show the math. Stay on-topic. After answering, offer a logical next step.';
+
         apiMessages[apiMessages.length - 1] = {
             role: 'user',
             parts: [
-                {
-                    text:
-                        'You are the AI assistant for TDEE Lab — a sleek, modern health & fitness utility. Be direct, concise, and subtly witty. Use markdown: **bold** for key metrics, bullet points for lists, `inline code` for numbers. Never hallucinate data. If user asks for a calculation, show the math. Stay on-topic. After answering, offer a logical next step.',
-                },
+                { text: personaText },
                 ...((apiMessages[apiMessages.length - 1] as any).parts || []),
             ],
         };
@@ -611,18 +627,37 @@ function showSuggestions(responseText: string) {
     const lower = responseText.toLowerCase();
 
     let prompts: string[] = [];
-    if (lower.includes('tdee') || lower.includes('calorie')) {
-        prompts = ['Calculate my TDEE', 'What macros should I eat?', 'How accurate is TDEE?'];
-    } else if (lower.includes('bmr') || lower.includes('basal')) {
-        prompts = ['How do I increase my BMR?', 'BMR vs TDEE — explain the difference', 'What affects BMR the most?'];
-    } else if (lower.includes('protein') || lower.includes('macro')) {
+    if (lower.includes('tdee') || lower.includes('calorie') || lower.includes('bmr')) {
+        prompts = ['Calculate my TDEE', 'What macros should I eat?', 'BMR vs TDEE — explain the difference', 'What is a calorie deficit?'];
+    } else if (lower.includes('protein') || lower.includes('macro') || lower.includes('nutrition')) {
         prompts = ['How much protein for muscle gain?', 'Best protein sources for vegetarians', 'How to track macros?'];
-    } else if (lower.includes('weight') || lower.includes('loss') || lower.includes('fat')) {
-        prompts = ['Safe rate of weight loss?', 'How to break a plateau?', 'Calorie deficit without losing muscle?'];
+    } else if (lower.includes('weight') || lower.includes('loss') || lower.includes('fat') || lower.includes('gain')) {
+        prompts = ['Safe rate of weight loss?', 'How to break a plateau?', 'Calorie deficit for fat loss?'];
     } else if (lower.includes('bmi')) {
         prompts = ['Is BMI accurate for athletes?', 'How to lower my BMI?', 'BMI categories explained'];
+    } else if (lower.includes('loan') || lower.includes('mortgage') || lower.includes('finance') || lower.includes('interest')) {
+        prompts = ['Calculate loan payment', 'How does compound interest work?', 'Mortgage calculator'];
+    } else if (lower.includes('math') || lower.includes('fraction') || lower.includes('percent') || lower.includes('average')) {
+        prompts = ['Calculate 15% of 200', 'What is 3/4 as a decimal?', 'Find the average of 10, 20, 30'];
+    } else if (lower.includes('age') || lower.includes('birthday') || lower.includes('born') || lower.includes('date')) {
+        prompts = ['How old am I if born in 1990?', 'Days between two dates?', 'Age calculator'];
     } else {
-        prompts = ['Calculate my TDEE', 'What are macros?', 'How to lose weight safely?'];
+        const path = window.location.pathname;
+        if (path.includes('/tdee-calculator')) {
+            prompts = ['Calculate my TDEE', 'Explain my BMR', 'What macros match my goal?'];
+        } else if (path.includes('/financial-calculator')) {
+            prompts = ['Calculate a loan payment', 'How do mortgage rates work?', 'What is compound interest?'];
+        } else if (path.includes('/math-calculator')) {
+            prompts = ['15% of 200', 'What is 3/4 + 1/2?', 'Average of 5, 15, 25'];
+        } else if (path.includes('/other-calculator')) {
+            prompts = ['Calculate my age', 'How many days since 2020?', 'Convert 100kg to lbs'];
+        } else if (path.includes('/what-is-tdee')) {
+            prompts = ['What is TDEE?', 'How is TDEE calculated?', 'Why does TDEE matter?'];
+        } else if (path.includes('/bmr-vs-tdee')) {
+            prompts = ['BMR vs TDEE difference', 'How to increase BMR?', 'Which number should I use?'];
+        } else {
+            prompts = ['Calculate my TDEE', 'What are macros?', 'How to lose weight safely?', 'Calculate a loan payment', 'How old am I?'];
+        }
     }
 
     el.innerHTML =
